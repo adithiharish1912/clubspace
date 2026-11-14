@@ -54,7 +54,11 @@ async function buildPaymentFor(req) {
 
 // POST /api/payments/order – creates a Razorpay order (or a demo order)
 exports.createOrder = asyncHandler(async (req, res) => {
-  if (!isRazorpayConfigured && !isDemoPaymentMode) throw ApiError.badRequest('Online payments are not configured');
+  if (!isRazorpayConfigured && !isDemoPaymentMode) {
+    throw ApiError.badRequest(
+      'Online payment is not accepted due to high value. Kindly contact the club admin or adithiharish1912@gmail.com to complete your payment.'
+    );
+  }
   const data = await buildPaymentFor(req);
   if (data.amount <= 0) throw ApiError.badRequest('Nothing to pay');
   const settings = await Setting.get();
