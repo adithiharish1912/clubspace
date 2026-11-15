@@ -48,8 +48,8 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (form) => {
+    // Registration does not log the member in: they see a confirmation screen and then log in.
     const { data } = await api.post('/auth/register', form);
-    if (data.data.token) applySession(data.data);
     return data;
   };
 
