@@ -63,9 +63,19 @@ exports.register = asyncHandler(async (req, res) => {
     user,
     member,
     type: 'welcome',
-    title: 'Welcome to the club!',
-    message: `Hi ${firstName}, your membership ID is ${member.membershipId}. Choose a membership plan to activate your account.`,
-    link: '/my/membership',
+    title: 'Congratulations! Your membership account is created',
+    message: `Hi ${firstName},
+
+Congratulations! Your ClubSpace member account has been created successfully.
+
+Membership ID: ${member.membershipId}
+Login ID: ${user.email}
+Password: the password you chose while registering
+
+Log in at ${clientUrl()}/login and choose a membership plan to activate your membership.
+
+Welcome to the club!`,
+    link: '/login',
     whatsapp: false,
   });
   await notifyAdmins({ title: 'New member registration', message: `${member.fullName} (${member.membershipId}) just registered.`, link: `/members/${member._id}` });

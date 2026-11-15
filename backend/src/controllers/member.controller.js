@@ -1,5 +1,6 @@
 const QRCode = require('qrcode');
 const crypto = require('crypto');
+const env = require('../config/env');
 const { Member, User, Subscription, Payment, Attendance } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { asyncHandler, escapeRegex, paginate, pageMeta, addDays } = require('../utils/helpers');
@@ -89,10 +90,22 @@ exports.create = asyncHandler(async (req, res) => {
     member,
     user,
     type: 'welcome',
-    title: 'Welcome to the club!',
-    message: `Hi ${member.firstName}, you have been registered as a member. Your membership ID is ${member.membershipId}.${
-      user ? ' You can log in to ClubSpace with this email address – use "Forgot password" to set your password.' : ''
-    }`,
+    title: 'Congratulations! Your membership account is created',
+    message: `Hi ${member.firstName},
+
+Congratulations! You have been registered as a member successfully.
+
+Membership ID: ${member.membershipId}${
+      user
+        ? `
+Login ID: ${user.email}
+Password: ${password ? 'the password given to you at the club office (please change it after your first login under My Profile)' : 'use "Forgot password" on the login page to set your own password'}
+
+Log in at ${env.clientUrls[0]}/login`
+        : ''
+    }
+
+Welcome to the club!`,
     link: '/login',
   });
   res.status(201).json({ success: true, data: { member, subscription } });
