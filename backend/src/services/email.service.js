@@ -46,13 +46,19 @@ async function sendViaBrevo({ to, subject, html, text, attachments }) {
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 300)}`);
 }
 
+const SECURITY_TEXT =
+  'For your security: we will never ask for your password, OTP, PIN or bank/card details by email, phone, SMS or WhatsApp. Please do not share them with anyone, even someone who says they are from the club.';
+
 function layout(title, bodyHtml, clubName = 'ClubSpace') {
   return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Segoe UI,Arial,sans-serif;color:#0f172a">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px">
   <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:14px;overflow:hidden">
   <tr><td style="background:#1d4ed8;color:#fff;padding:20px 28px;font-size:20px;font-weight:700">${clubName}</td></tr>
-  <tr><td style="padding:28px"><h2 style="margin:0 0 12px;font-size:20px">${title}</h2>${bodyHtml}</td></tr>
-  <tr><td style="padding:16px 28px;background:#f8fafc;color:#64748b;font-size:12px">This is an automated message from ${clubName}.</td></tr>
+  <tr><td style="padding:28px"><h2 style="margin:0 0 12px;font-size:20px">${title}</h2>${bodyHtml}
+  <p style="margin:24px 0 0;line-height:1.6">Warm regards,<br><strong>Team ${clubName}</strong></p></td></tr>
+  <tr><td style="padding:0 28px 24px"><div style="border:1px solid #fde68a;background:#fffbeb;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;color:#92400e">
+  <strong>&#128274; Security notice</strong><br>${SECURITY_TEXT}</div></td></tr>
+  <tr><td style="padding:16px 28px;background:#f8fafc;color:#64748b;font-size:12px;line-height:1.5">This is an automated email from ${clubName}. Please do not reply to this message. For any help, kindly contact the club office.</td></tr>
   </table></td></tr></table></body></html>`;
 }
 
@@ -69,6 +75,7 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     if (!env.isTest) console.log(`[email:dev] To: ${to} | ${subject}\n${text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 400)}`);
     return 'logged';
   }
+  if (text) text = `${text}\n\n---\n${SECURITY_TEXT}\nThis is an automated email. Please do not reply.`;
   try {
     if (useBrevo) await sendViaBrevo({ to, subject, html, text, attachments });
     else await transporter.sendMail({ from: env.smtp.from, to, subject, html, text, attachments });
@@ -79,4 +86,4 @@ async function sendEmail({ to, subject, html, text, attachments }) {
   }
 }
 
-module.exports = { sendEmail, layout, button, isEmailConfigured };
+module.exports = { sendEmail, layout, button, isEmailConfigured, SECURITY_TEXT };

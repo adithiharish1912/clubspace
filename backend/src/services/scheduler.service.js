@@ -24,7 +24,7 @@ async function expireMemberships() {
       member: m,
       type: 'membership_expired',
       title: 'Your membership has expired',
-      message: `Hi ${m.firstName}, your membership (${m.membershipId}) expired on ${m.membershipExpiry.toLocaleDateString('en-IN')}. Renew now to continue enjoying club facilities.`,
+      message: `Dear ${m.firstName}, your membership (${m.membershipId}) expired on ${m.membershipExpiry.toLocaleDateString('en-IN')}. Renew now to continue enjoying club facilities.`,
       link: '/my/membership',
     });
   }
@@ -51,7 +51,7 @@ async function sendExpiryReminders() {
         member: m,
         type: days <= 1 ? 'renewal_reminder' : 'expiry_reminder',
         title: days <= 1 ? 'Membership expires tomorrow' : `Membership expires in ${days} days`,
-        message: `Hi ${m.firstName}, your membership ${m.membershipId} expires on ${m.membershipExpiry.toLocaleDateString('en-IN')}. Renew early – remaining days are carried forward.`,
+        message: `Dear ${m.firstName}, your membership ${m.membershipId} expires on ${m.membershipExpiry.toLocaleDateString('en-IN')}. Renew early – remaining days are carried forward.`,
         link: '/my/membership',
       });
       if (sub) {

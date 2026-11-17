@@ -21,8 +21,12 @@ async function issueVerification(user) {
   const settings = await Setting.get();
   await sendEmail({
     to: user.email,
-    subject: `Verify your email – ${settings.clubName}`,
-    html: layout('Verify your email', `<p>Hi ${user.name}, please confirm your email address.</p>${button(url, 'Verify email')}<p style="color:#64748b;font-size:13px">This link expires in 24 hours.</p>`, settings.clubName),
+    subject: `Please Verify Your Email Address – ${settings.clubName}`,
+    html: layout(
+      'Verify your email address',
+      `<p style="line-height:1.6">Dear ${user.name},</p><p style="line-height:1.6">Thank you for registering with ${settings.clubName}. Please confirm your email address by clicking the button below.</p>${button(url, 'Verify email address')}<p style="color:#64748b;font-size:13px;line-height:1.5">This link is valid for 24 hours. If you did not create this account, you can safely ignore this email.</p>`,
+      settings.clubName
+    ),
     text: `Verify your email: ${url}`,
   });
   return url;
@@ -64,17 +68,19 @@ exports.register = asyncHandler(async (req, res) => {
     member,
     type: 'welcome',
     title: 'Congratulations! Your membership account is created',
-    message: `Hi ${firstName},
+    message: `Dear ${firstName},
 
-Congratulations! Your ClubSpace member account has been created successfully.
+Congratulations! Your member account has been created successfully.
 
 Membership ID: ${member.membershipId}
 Login ID: ${user.email}
 Password: the password you chose while registering
 
-Log in at ${clientUrl()}/login and choose a membership plan to activate your membership.
+Please log in at ${clientUrl()}/login and choose a membership plan to activate your membership.
 
-Welcome to the club!`,
+Please keep your password private and do not share it with anyone.
+
+We are delighted to welcome you to the club!`,
     link: '/login',
     whatsapp: false,
   });
@@ -149,9 +155,13 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
     const settings = await Setting.get();
     await sendEmail({
       to: user.email,
-      subject: `Reset your password – ${settings.clubName}`,
-      html: layout('Reset your password', `<p>Hi ${user.name}, click below to choose a new password.</p>${button(url, 'Reset password')}<p style="color:#64748b;font-size:13px">This link expires in 30 minutes. If you did not request it, ignore this email.</p>`, settings.clubName),
-      text: `Reset your password: ${url}`,
+      subject: `Password Reset Request – ${settings.clubName}`,
+      html: layout(
+        'Password reset request',
+        `<p style="line-height:1.6">Dear ${user.name},</p><p style="line-height:1.6">We received a request to reset the password for your ${settings.clubName} account. Please click the button below to set a new password.</p>${button(url, 'Reset my password')}<p style="color:#64748b;font-size:13px;line-height:1.5">This link is valid for 30 minutes and can be used only once. Please do not forward this email or share this link with anyone.</p><p style="color:#64748b;font-size:13px;line-height:1.5">If you did not request a password reset, no action is needed – your password will remain unchanged.</p>`,
+        settings.clubName
+      ),
+      text: `Dear ${user.name},\n\nWe received a request to reset your ${settings.clubName} password. Reset it here (valid for 30 minutes): ${url}\n\nIf you did not request this, please ignore this email.`,
     });
     if (exposeDevLinks()) devResetUrl = url;
   }

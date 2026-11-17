@@ -84,7 +84,7 @@ async function completePayment(paymentId, { method, razorpayPaymentId, razorpayS
       member,
       type: 'payment_confirmation',
       title: 'Payment received',
-      message: `Hi ${member.firstName}, we received ${money(payment.amount, payment.currency)} for ${payment.description}. Receipt No: ${payment.receiptNo}.${
+      message: `Dear ${member.firstName}, thank you for your payment. We have received ${money(payment.amount, payment.currency)} for ${payment.description}. Receipt No: ${payment.receiptNo}.${
         member.membershipExpiry && payment.subscription
           ? ` Your membership is valid till ${member.membershipExpiry.toLocaleDateString('en-IN')}.`
           : ''

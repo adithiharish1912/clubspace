@@ -91,7 +91,7 @@ exports.create = asyncHandler(async (req, res) => {
     user,
     type: 'welcome',
     title: 'Congratulations! Your membership account is created',
-    message: `Hi ${member.firstName},
+    message: `Dear ${member.firstName},
 
 Congratulations! You have been registered as a member successfully.
 
@@ -101,11 +101,13 @@ Membership ID: ${member.membershipId}${
 Login ID: ${user.email}
 Password: ${password ? 'the password given to you at the club office (please change it after your first login under My Profile)' : 'use "Forgot password" on the login page to set your own password'}
 
-Log in at ${env.clientUrls[0]}/login`
+Please log in at ${env.clientUrls[0]}/login
+
+Please keep your password private and do not share it with anyone.`
         : ''
     }
 
-Welcome to the club!`,
+We are delighted to welcome you to the club!`,
     link: '/login',
   });
   res.status(201).json({ success: true, data: { member, subscription } });

@@ -18,6 +18,16 @@ const clientUrl = () => env.clientUrls[0];
  * @param {boolean} [opts.whatsapp=true]
  * @param {Array}  [opts.attachments] Nodemailer attachments
  */
+/** Professional email subject lines by notification type. */
+const SUBJECTS = {
+  welcome: (c) => `Welcome to ${c} – Your Membership Account Details`,
+  payment_confirmation: (c) => `Payment Received – Your Receipt from ${c}`,
+  payment_refund: (c) => `Refund Confirmation – ${c}`,
+  expiry_reminder: (c) => `Membership Renewal Reminder – ${c}`,
+  renewal_reminder: (c) => `Action Required: Your ${c} Membership Expires Tomorrow`,
+  membership_expired: (c) => `Your ${c} Membership Has Expired – Renew Today`,
+};
+
 async function notify(opts) {
   const { member, type, title, message, link, attachments, createdBy } = opts;
   const settings = await Setting.get();
@@ -30,10 +40,11 @@ async function notify(opts) {
   if (opts.email !== false && settings.emailNotifications && email) {
     const html = layout(
       title,
-      `<p style="line-height:1.6;white-space:pre-line">${escapeHtml(message)}</p>${link ? button(clientUrl() + link, 'Open ClubSpace') : ''}`,
+      `<p style="line-height:1.6;white-space:pre-line">${escapeHtml(message)}</p>${link ? button(clientUrl() + link, `Open ${escapeHtml(settings.clubName)}`) : ''}`,
       settings.clubName
     );
-    emailStatus = await sendEmail({ to: email, subject: `${title} – ${settings.clubName}`, html, text: message, attachments });
+    const subject = opts.subject || (SUBJECTS[type] ? SUBJECTS[type](settings.clubName) : `${title} – ${settings.clubName}`);
+    emailStatus = await sendEmail({ to: email, subject, html, text: message, attachments });
   }
 
   let waStatus = 'skipped';
