@@ -14,7 +14,9 @@ const subscriptionSchema = new mongoose.Schema(
       taxPercent: Number,
     },
     type: { type: String, enum: ['new', 'renewal'], default: 'new' },
-    amount: { type: Number, required: true, min: 0 },
+    amount: { type: Number, required: true, min: 0 }, // amount payable after any coupon
+    originalAmount: { type: Number, min: 0 }, // plan price incl. tax, before coupon
+    coupon: { code: String, label: String, discount: Number },
     startDate: Date,
     endDate: { type: Date, index: true },
     status: {

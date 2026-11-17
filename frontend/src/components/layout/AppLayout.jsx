@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, CalendarDays, ChevronDown, ClipboardCheck, CreditCard, FileBarChart2, Gauge, IdCard, Layers,
-  LogOut, Menu, Moon, Settings, ShieldCheck, Sun, User, Users, X, Wallet, ScanLine,
+  LogOut, Menu, Moon, Settings, ShieldCheck, Sun, User, Users, X, Wallet, ScanLine, BadgePercent,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: Gauge, roles: ['superadmin', 'admin', 'staff', 'member'] },
   { to: '/members', label: 'Members', icon: Users, roles: ['admin', 'staff'] },
   { to: '/plans', label: 'Membership Plans', icon: Layers, roles: ['admin'] },
+  { to: '/coupons', label: 'Coupons', icon: BadgePercent, roles: ['admin'] },
   { to: '/payments', label: 'Payments', icon: CreditCard, roles: ['admin', 'staff'] },
   { to: '/attendance', label: 'Attendance', icon: ScanLine, roles: ['admin', 'staff'] },
   { to: '/my/membership', label: 'My Membership', icon: IdCard, roles: ['member'] },

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Banknote } from 'lucide-react';
 import api, { errMsg } from '../api/client';
 import { Button, Input, Modal, Select } from './ui';
+import CouponBox from './CouponBox';
 import { money } from '../utils/format';
 
 /**
@@ -13,15 +14,20 @@ export default function RecordPaymentModal({ open, onClose, member, subscription
   const [plans, setPlans] = useState([]);
   const [form, setForm] = useState({ planId: '', method: 'cash', referenceNo: '' });
   const [saving, setSaving] = useState(false);
+  const [coupon, setCoupon] = useState(null);
 
   useEffect(() => {
     if (!open) return;
     setForm({ planId: '', method: 'cash', referenceNo: '' });
+    setCoupon(null);
     if (!subscription) api.get('/plans').then((r) => setPlans(r.data.data)).catch(() => {});
   }, [open, subscription]);
 
   const plan = plans.find((p) => p._id === form.planId);
-  const amount = subscription ? subscription.amount : plan?.totalPrice;
+  const planIdForCoupon = subscription ? subscription.plan : form.planId;
+  const offer = coupon?.prices?.find((x) => String(x.planId) === String(planIdForCoupon));
+  const baseAmount = subscription ? subscription.amount : plan?.totalPrice;
+  const amount = offer ? offer.payable : baseAmount;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -30,8 +36,9 @@ export default function RecordPaymentModal({ open, onClose, member, subscription
       const body = subscription
         ? { subscriptionId: subscription._id, method: form.method, referenceNo: form.referenceNo }
         : { memberId: member._id, planId: form.planId, method: form.method, referenceNo: form.referenceNo };
+      if (offer) body.couponCode = coupon.code;
       const r = await api.post('/payments/offline', body);
-      toast.success(`Payment recorded · ${r.data.data.receiptNo}`);
+      toast.success(r.data.data.method === 'coupon' ? `Coupon applied – membership activated free · ${r.data.data.receiptNo}` : `Payment recorded · ${r.data.data.receiptNo}`);
       onDone?.(r.data.data);
       onClose();
     } catch (err) {
@@ -51,8 +58,8 @@ export default function RecordPaymentModal({ open, onClose, member, subscription
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="pay-form" loading={saving} icon={Banknote} disabled={!amount}>
-            Record {amount ? money(amount) : 'payment'}
+          <Button type="submit" form="pay-form" loading={saving} icon={Banknote} disabled={amount === undefined || amount === null || (!offer && !amount)}>
+            {offer && amount === 0 ? 'Activate free (coupon)' : `Record ${amount ? money(amount) : 'payment'}`}
           </Button>
         </>
       }
@@ -85,7 +92,19 @@ export default function RecordPaymentModal({ open, onClose, member, subscription
             { value: 'cheque', label: 'Cheque' },
           ]}
         />
-        <Input label="Reference no. (UPI txn / cheque no.)" value={form.referenceNo} onChange={(e) => setForm({ ...form, referenceNo: e.target.value })} />
+        <div>
+          <span className="label">Coupon</span>
+          <CouponBox applied={coupon} onApply={setCoupon} memberId={member?._id} compact />
+          {coupon && !offer && <p className="mt-1.5 text-xs text-amber-600">Select a plan to see the coupon price.</p>}
+          {offer && (
+            <p className="mt-1.5 text-xs text-slate-500">
+              <span className="line-through">{money(offer.total)}</span> → <b className="text-emerald-600">{offer.payable === 0 ? 'Free' : money(offer.payable)}</b> (saves {money(offer.discount)})
+            </p>
+          )}
+        </div>
+        {!(offer && amount === 0) && (
+          <Input label="Reference no. (UPI txn / cheque no.)" value={form.referenceNo} onChange={(e) => setForm({ ...form, referenceNo: e.target.value })} />
+        )}
         {member?.status === 'active' && !subscription && (
           <p className="text-xs text-slate-500">Renewal days are added after the current expiry date, so the member loses nothing.</p>
         )}

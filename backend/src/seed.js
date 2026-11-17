@@ -7,7 +7,7 @@
  */
 const env = require('./config/env');
 const { connectDB, disconnectDB } = require('./config/db');
-const { User, Member, MembershipPlan, Setting, Event, Attendance, Payment } = require('./models');
+const { User, Member, MembershipPlan, Setting, Event, Attendance, Payment, Coupon } = require('./models');
 const { generateMembershipId } = require('./services/counter.service');
 const { createPendingSubscription } = require('./services/membership.service');
 const { completePayment } = require('./services/payment.service');
@@ -43,6 +43,16 @@ async function seedBase() {
     if (!(await MembershipPlan.exists({ code: p.code }))) await MembershipPlan.create(p);
   }
   console.log(`✔ Plans: ${PLANS.map((p) => p.name).join(', ')}`);
+  if (!(await Coupon.exists({ code: 'FREEMEMBERSHIP500' }))) {
+    await Coupon.create({
+      code: 'FREEMEMBERSHIP500',
+      description: 'Join free – first month free for new members. Normal price from the next month.',
+      type: 'first_month_free',
+      newMembersOnly: true,
+      oncePerMember: true,
+    });
+  }
+  console.log('✔ Coupon: FREEMEMBERSHIP500 (first month free for new members)');
 }
 
 async function seedDemo() {

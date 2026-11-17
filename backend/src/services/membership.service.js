@@ -1,4 +1,5 @@
-const { Member, Subscription, MembershipPlan } = require('../models');
+const { Member, Subscription, MembershipPlan, Coupon } = require('../models');
+const { validateCoupon, discountFor, describe } = require('./coupon.service');
 const ApiError = require('../utils/ApiError');
 const { addDays, round2 } = require('../utils/helpers');
 
@@ -7,7 +8,7 @@ const { addDays, round2 } = require('../utils/helpers');
  * Any earlier pending (unpaid) subscription for the same member is cancelled so the
  * member never has two open checkouts.
  */
-async function createPendingSubscription({ memberId, planId, createdBy }) {
+async function createPendingSubscription({ memberId, planId, createdBy, couponCode }) {
   const [member, plan] = await Promise.all([Member.findById(memberId), MembershipPlan.findById(planId)]);
   if (!member) throw ApiError.notFound('Member not found');
   if (!plan || !plan.isActive) throw ApiError.badRequest('Selected plan is not available');
@@ -15,13 +16,22 @@ async function createPendingSubscription({ memberId, planId, createdBy }) {
     throw ApiError.badRequest(`Member is ${member.status}. Reactivate the member first.`);
   }
 
+  const hasHistory = await Subscription.exists({ member: member._id, status: { $in: ['active', 'expired'] } });
+  const total = round2(plan.price * (1 + (plan.taxPercent || 0) / 100));
+
+  // Validate the coupon before touching any existing checkout
+  let coupon = null;
+  let discount = 0;
+  if (couponCode && String(couponCode).trim()) {
+    coupon = await validateCoupon(couponCode, { memberId: member._id, isRenewal: Boolean(hasHistory) });
+    discount = discountFor(coupon, { total, durationDays: plan.durationDays });
+  }
+  const amount = round2(total - discount);
+
   await Subscription.updateMany(
     { member: member._id, status: 'pending' },
     { $set: { status: 'cancelled', cancelledReason: 'Superseded by a newer checkout' } }
   );
-
-  const hasHistory = await Subscription.exists({ member: member._id, status: { $in: ['active', 'expired'] } });
-  const amount = round2(plan.price * (1 + (plan.taxPercent || 0) / 100));
 
   const sub = await Subscription.create({
     member: member._id,
@@ -36,6 +46,8 @@ async function createPendingSubscription({ memberId, planId, createdBy }) {
     },
     type: hasHistory ? 'renewal' : 'new',
     amount,
+    originalAmount: total,
+    ...(coupon ? { coupon: { code: coupon.code, label: describe(coupon), discount } } : {}),
     status: 'pending',
     createdBy,
   });
@@ -61,6 +73,8 @@ async function activateSubscription(subscriptionId, paymentId) {
   sub.endDate = end;
   if (paymentId) sub.payment = paymentId;
   await sub.save();
+
+  if (sub.coupon?.code) await Coupon.updateOne({ code: sub.coupon.code }, { $inc: { usedCount: 1 } });
 
   member.status = 'active';
   member.membershipExpiry = end;

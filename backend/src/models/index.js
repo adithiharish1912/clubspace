@@ -9,4 +9,5 @@ module.exports = {
   Event: require('./Event'),
   Notification: require('./Notification'),
   Setting: require('./Setting'),
+  Coupon: require('./Coupon'),
 };

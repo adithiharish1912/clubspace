@@ -37,6 +37,7 @@ router.post(
     body('memberId').optional().isMongoId(),
     body('planId').optional().isMongoId(),
     body('eventId').optional().isMongoId(),
+    body('couponCode').optional({ values: 'falsy' }).isString().isLength({ max: 30 }),
   ]),
   c.recordOffline
 );

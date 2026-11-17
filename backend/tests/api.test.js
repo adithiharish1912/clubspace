@@ -14,7 +14,7 @@ const mongoose = require('mongoose');
 
 const app = require('../src/app');
 const { connectDB } = require('../src/config/db');
-const { User, Member, MembershipPlan, Subscription } = require('../src/models');
+const { User, Member, MembershipPlan, Subscription, Coupon } = require('../src/models');
 const { verifyCheckoutSignature } = require('../src/services/payment.service');
 const { expireMemberships, sendExpiryReminders } = require('../src/services/scheduler.service');
 
@@ -72,6 +72,7 @@ describe('Health & authentication', () => {
     ctx.memberId = r.body.data.member._id;
     ctx.verifyUrl = r.body.data.devVerifyUrl;
     assert.ok(ctx.verifyUrl, 'dev verify url returned when SMTP not configured');
+    assert.ok(r.body.data.token, 'API still returns a token');
   });
 
   test('duplicate email is rejected', async () => {
@@ -385,6 +386,82 @@ describe('Events', () => {
     assert.equal(ev.body.data.participants, undefined, 'members do not see participant list');
     const adminView = await api.get(`/api/events/${ctx.paidEvent}`).set(auth('admin'));
     assert.equal(adminView.body.data.participants.length, 1);
+  });
+});
+
+describe('Coupons (FREEMEMBERSHIP500)', () => {
+  test('setup coupon and a brand-new member', async () => {
+    await Coupon.create({ code: 'FREEMEMBERSHIP500', type: 'first_month_free', newMembersOnly: true, oncePerMember: true });
+    const r = await api.post('/api/auth/register').send({ firstName: 'Neha', email: 'neha@test.dev', phone: '9876500000', password: 'Secret123' });
+    assert.equal(r.status, 201, r.body.message);
+    const l = await api.post('/api/auth/login').send({ email: 'neha@test.dev', password: 'Secret123' });
+    tokens.neha = l.body.data.token;
+    ctx.nehaId = r.body.data.member._id;
+    const plans = (await api.get('/api/plans').set(auth('neha'))).body.data;
+    ctx.monthly = plans.find((p) => p.code === 'M1');
+    ctx.annual = plans.find((p) => p.code === 'A1');
+  });
+
+  test('invalid code is rejected with a friendly message', async () => {
+    const r = await api.post('/api/coupons/validate').set(auth('neha')).send({ code: 'NOPE' });
+    assert.equal(r.status, 400);
+    assert.match(r.body.message, /not valid/);
+  });
+
+  test('validate shows monthly free and annual reduced by one month (case-insensitive)', async () => {
+    const r = await api.post('/api/coupons/validate').set(auth('neha')).send({ code: 'freemembership500' });
+    assert.equal(r.status, 200, r.body.message);
+    const m = r.body.data.prices.find((p) => String(p.planId) === String(ctx.monthly._id));
+    const a = r.body.data.prices.find((p) => String(p.planId) === String(ctx.annual._id));
+    assert.equal(m.payable, 0);
+    assert.equal(a.discount, Math.round(9000 * 30 / 365 * 100) / 100);
+    assert.equal(a.payable, Math.round((9000 - 9000 * 30 / 365) * 100) / 100);
+  });
+
+  test('monthly plan with coupon activates instantly at ₹0 with a coupon receipt', async () => {
+    const r = await api.post('/api/subscriptions').set(auth('neha')).send({ planId: ctx.monthly._id, couponCode: 'FREEMEMBERSHIP500' });
+    assert.equal(r.status, 201, r.body.message);
+    assert.equal(r.body.data.free, true);
+    assert.equal(r.body.data.subscription.status, 'active');
+    assert.equal(r.body.data.subscription.amount, 0);
+    assert.equal(r.body.data.subscription.originalAmount, 1180);
+    assert.equal(r.body.data.payment.method, 'coupon');
+    assert.match(r.body.data.payment.receiptNo, /^RCPT-/);
+    const m = await Member.findById(ctx.nehaId);
+    assert.equal(m.status, 'active');
+    const c = await Coupon.findOne({ code: 'FREEMEMBERSHIP500' });
+    assert.equal(c.usedCount, 1);
+  });
+
+  test('next month: renewal pays the normal amount and the coupon is refused', async () => {
+    const again = await api.post('/api/subscriptions').set(auth('neha')).send({ planId: ctx.monthly._id, couponCode: 'FREEMEMBERSHIP500' });
+    assert.equal(again.status, 400);
+    assert.match(again.body.message, /new members/);
+    const renew = await api.post('/api/subscriptions').set(auth('neha')).send({ planId: ctx.monthly._id });
+    assert.equal(renew.body.data.subscription.type, 'renewal');
+    assert.equal(renew.body.data.subscription.amount, 1180);
+  });
+
+  test('staff can apply the coupon at the counter for a new member', async () => {
+    const s = await api.post('/api/auth/login').send({ email: 'admin@test.dev', password: 'Passw0rd!' });
+    const m = await api.post('/api/members').set({ Authorization: `Bearer ${s.body.data.token}` }).send({ firstName: 'Walk', lastName: 'In', email: 'walkin@test.dev', phone: '9876511111' });
+    const r = await api.post('/api/payments/offline').set({ Authorization: `Bearer ${s.body.data.token}` }).send({ memberId: m.body.data.member._id, planId: ctx.monthly._id, method: 'cash', couponCode: 'FREEMEMBERSHIP500' });
+    assert.equal(r.status, 201, r.body.message);
+    assert.equal(r.body.data.method, 'coupon');
+    assert.equal(r.body.data.amount, 0);
+  });
+
+  test('switched-off coupon no longer works; admin can list coupons', async () => {
+    const s = await api.post('/api/auth/login').send({ email: 'admin@test.dev', password: 'Passw0rd!' });
+    const A = { Authorization: `Bearer ${s.body.data.token}` };
+    const list = await api.get('/api/coupons').set(A);
+    const c = list.body.data.find((x) => x.code === 'FREEMEMBERSHIP500');
+    assert.equal(c.usedCount, 2);
+    await api.patch(`/api/coupons/${c._id}`).set(A).send({ isActive: false });
+    const r = await api.post('/api/coupons/validate').set(A).send({ code: 'FREEMEMBERSHIP500' });
+    assert.equal(r.status, 400);
+    const denied = await api.get('/api/coupons').set(auth('neha'));
+    assert.equal(denied.status, 403);
   });
 });
 

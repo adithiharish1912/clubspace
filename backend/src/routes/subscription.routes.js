@@ -9,7 +9,11 @@ router.use(protect);
 router.get('/', c.list);
 router.post(
   '/',
-  validate([body('planId').isMongoId().withMessage('Select a plan'), body('memberId').optional().isMongoId()]),
+  validate([
+    body('planId').isMongoId().withMessage('Select a plan'),
+    body('memberId').optional().isMongoId(),
+    body('couponCode').optional({ values: 'falsy' }).isString().isLength({ max: 30 }),
+  ]),
   c.create
 );
 router.patch('/:id/cancel', validateObjectId(), authorize('admin'), c.cancel);

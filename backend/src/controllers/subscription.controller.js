@@ -3,14 +3,26 @@ const ApiError = require('../utils/ApiError');
 const { asyncHandler, paginate, pageMeta } = require('../utils/helpers');
 const { isStaffOrAbove } = require('../middleware/auth');
 const { createPendingSubscription } = require('../services/membership.service');
+const { completeFreeSubscription } = require('../services/payment.service');
 
 // POST /api/subscriptions  { planId, memberId? }
 // Members create their own (memberId ignored); staff create for any member.
 exports.create = asyncHandler(async (req, res) => {
   const memberId = isStaffOrAbove(req.user) ? req.body.memberId : req.member?._id;
   if (!memberId) throw ApiError.badRequest('memberId is required');
-  const { subscription, plan } = await createPendingSubscription({ memberId, planId: req.body.planId, createdBy: req.user._id });
-  res.status(201).json({ success: true, data: { subscription, plan } });
+  const { subscription, plan } = await createPendingSubscription({
+    memberId,
+    planId: req.body.planId,
+    couponCode: req.body.couponCode,
+    createdBy: req.user._id,
+  });
+  // Fully covered by a coupon (e.g. first month free on the Monthly plan): activate now, no payment needed
+  if (subscription.amount === 0) {
+    const payment = await completeFreeSubscription(subscription, { recordedBy: req.user._id });
+    const active = await Subscription.findById(subscription._id);
+    return res.status(201).json({ success: true, message: 'Coupon applied – your membership is active!', data: { subscription: active, plan, payment, free: true } });
+  }
+  return res.status(201).json({ success: true, data: { subscription, plan } });
 });
 
 // GET /api/subscriptions

@@ -69,7 +69,7 @@ function PaymentsTable() {
         <div className="grid grid-cols-2 gap-3 border-b border-slate-100 p-4 lg:grid-cols-6 dark:border-white/5">
           <Input icon={Search} placeholder="Receipt / Razorpay ID" value={q} onChange={(e) => setQ(e.target.value)} className="col-span-2" />
           {tab === 'all' && <Select value={filters.status} onChange={setF('status')} placeholder="All statuses" options={['paid', 'created', 'failed', 'partially_refunded', 'refunded']} />}
-          <Select value={filters.method} onChange={setF('method')} placeholder="All methods" options={['razorpay', 'cash', 'upi', 'card', 'bank_transfer', 'cheque', 'demo']} />
+          <Select value={filters.method} onChange={setF('method')} placeholder="All methods" options={['razorpay', 'cash', 'upi', 'card', 'bank_transfer', 'cheque', 'coupon', 'demo']} />
           <Input type="date" value={filters.from} onChange={setF('from')} aria-label="From date" />
           <Input type="date" value={filters.to} onChange={setF('to')} aria-label="To date" />
         </div>

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import { PageLoader } from './components/ui';
+import { InstallBanner } from './components/InstallApp';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
@@ -13,6 +14,7 @@ const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const Members = lazy(() => import('./pages/members/Members'));
 const MemberDetail = lazy(() => import('./pages/members/MemberDetail'));
 const Plans = lazy(() => import('./pages/plans/Plans'));
+const Coupons = lazy(() => import('./pages/coupons/Coupons'));
 const Payments = lazy(() => import('./pages/payments/Payments'));
 const Attendance = lazy(() => import('./pages/attendance/Attendance'));
 const Events = lazy(() => import('./pages/events/Events'));
@@ -29,6 +31,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
   return (
+    <>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route element={<GuestRoute />}>
@@ -56,6 +59,7 @@ export default function App() {
             </Route>
             <Route element={<ProtectedRoute roles={['admin']} />}>
               <Route path="/plans" element={<Plans />} />
+              <Route path="/coupons" element={<Coupons />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<Users />} />
             </Route>
@@ -72,5 +76,7 @@ export default function App() {
         </Route>
       </Routes>
     </Suspense>
+    <InstallBanner />
+    </>
   );
 }

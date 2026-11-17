@@ -50,6 +50,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/members', require('./routes/member.routes'));
 app.use('/api/plans', require('./routes/plan.routes'));
 app.use('/api/subscriptions', require('./routes/subscription.routes'));
+app.use('/api/coupons', require('./routes/coupon.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
 app.use('/api/attendance', require('./routes/attendance.routes'));
 app.use('/api/events', require('./routes/event.routes'));

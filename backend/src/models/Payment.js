@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const PAYMENT_STATUS = ['created', 'pending', 'paid', 'failed', 'refunded', 'partially_refunded'];
-const PAYMENT_METHODS = ['razorpay', 'cash', 'upi', 'card', 'bank_transfer', 'cheque', 'demo'];
+const PAYMENT_METHODS = ['razorpay', 'cash', 'upi', 'card', 'bank_transfer', 'cheque', 'demo', 'coupon'];
 
 const refundSchema = new mongoose.Schema(
   {

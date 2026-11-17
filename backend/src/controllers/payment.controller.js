@@ -5,7 +5,7 @@ const { Payment, Subscription, Member, Event, Transaction, Setting } = require('
 const ApiError = require('../utils/ApiError');
 const { asyncHandler, paginate, pageMeta, resolveRange, escapeRegex, round2 } = require('../utils/helpers');
 const { isStaffOrAbove, assertMemberAccess } = require('../middleware/auth');
-const { verifyCheckoutSignature, verifyWebhookSignature, completePayment } = require('../services/payment.service');
+const { verifyCheckoutSignature, verifyWebhookSignature, completePayment, completeFreeSubscription } = require('../services/payment.service');
 const { createPendingSubscription } = require('../services/membership.service');
 const { receiptPdf, money } = require('../services/pdf.service');
 const { notify } = require('../services/notification.service');
@@ -37,7 +37,9 @@ async function buildPaymentFor(req) {
       subscription: sub._id,
       purpose: 'membership',
       amount: sub.amount,
-      description: `${sub.planSnapshot.name} membership (${sub.type === 'renewal' ? 'renewal' : 'new'})`,
+      description: `${sub.planSnapshot.name} membership (${sub.type === 'renewal' ? 'renewal' : 'new'})${
+        sub.coupon?.code ? ` – coupon ${sub.coupon.code}: ${sub.coupon.label}` : ''
+      }`,
     };
   }
   if (eventId) {
@@ -137,16 +139,33 @@ exports.markFailed = asyncHandler(async (req, res) => {
 // POST /api/payments/offline (staff) – cash/UPI/card at the counter
 // Body: { subscriptionId } or { memberId, planId } or { eventId, memberId }, method, referenceNo
 exports.recordOffline = asyncHandler(async (req, res) => {
-  const { method, referenceNo } = req.body;
+  const { method, referenceNo, couponCode } = req.body;
+  // A coupon at the counter: (re)create the checkout for that plan with the coupon applied
+  if (couponCode && req.body.subscriptionId && !req.body.planId) {
+    const existing = await Subscription.findById(req.body.subscriptionId);
+    if (!existing || existing.status !== 'pending') throw ApiError.badRequest('This subscription is not awaiting payment');
+    req.body.memberId = String(existing.member);
+    req.body.planId = String(existing.plan);
+    delete req.body.subscriptionId;
+  }
   if (!req.body.subscriptionId && req.body.planId) {
-    const { subscription } = await createPendingSubscription({ memberId: req.body.memberId, planId: req.body.planId, createdBy: req.user._id });
+    const { subscription } = await createPendingSubscription({
+      memberId: req.body.memberId,
+      planId: req.body.planId,
+      couponCode,
+      createdBy: req.user._id,
+    });
+    if (subscription.amount === 0) {
+      const done = await completeFreeSubscription(subscription, { recordedBy: req.user._id });
+      return res.status(201).json({ success: true, message: 'Coupon applied – membership activated free', data: done });
+    }
     req.body.subscriptionId = subscription._id;
   }
   const data = await buildPaymentFor(req);
   const settings = await Setting.get();
   const payment = await Payment.create({ ...data, currency: settings.currency, method, referenceNo, status: 'pending', recordedBy: req.user._id });
   const done = await completePayment(payment._id, { method, referenceNo, recordedBy: req.user._id });
-  res.status(201).json({ success: true, message: 'Payment recorded', data: done });
+  return res.status(201).json({ success: true, message: 'Payment recorded', data: done });
 });
 
 // GET /api/payments

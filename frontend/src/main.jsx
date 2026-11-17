@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
+import { InstallProvider } from './components/InstallApp';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PaymentProvider } from './context/PaymentContext';
@@ -28,7 +29,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <AuthProvider>
           <PaymentProvider>
-            <App />
+            <InstallProvider>
+              <App />
+            </InstallProvider>
             <Toaster
               position="top-right"
               toastOptions={{

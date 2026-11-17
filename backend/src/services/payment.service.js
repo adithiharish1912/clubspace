@@ -99,4 +99,23 @@ async function completePayment(paymentId, { method, razorpayPaymentId, razorpayS
   return payment;
 }
 
-module.exports = { verifyCheckoutSignature, verifyWebhookSignature, completePayment };
+/**
+ * A subscription that costs ₹0 after its coupon needs no payment gateway:
+ * record a ₹0 "coupon" payment (so it has a receipt and appears in history) and activate it.
+ */
+async function completeFreeSubscription(subscription, { recordedBy } = {}) {
+  const payment = await Payment.create({
+    member: subscription.member,
+    subscription: subscription._id,
+    purpose: 'membership',
+    amount: 0,
+    description: `${subscription.planSnapshot.name} membership – ${subscription.coupon?.label || 'coupon'} (${subscription.coupon?.code})`,
+    method: 'coupon',
+    referenceNo: subscription.coupon?.code,
+    status: 'pending',
+    recordedBy,
+  });
+  return completePayment(payment._id, { method: 'coupon', referenceNo: subscription.coupon?.code, recordedBy });
+}
+
+module.exports = { verifyCheckoutSignature, verifyWebhookSignature, completePayment, completeFreeSubscription };
