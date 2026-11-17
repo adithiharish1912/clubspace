@@ -12,7 +12,7 @@ const FEATURES = [
 export default function AuthShell({ title, subtitle, children }) {
   const { data: club } = useFetch('/settings/public');
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+    <div className="safe-top-pad grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <div className="relative hidden overflow-hidden bg-ink-800 p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-brand-600/40 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 right-0 h-[28rem] w-[28rem] rounded-full bg-brand-400/20 blur-3xl" />

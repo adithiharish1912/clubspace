@@ -34,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             </InstallProvider>
             <Toaster
               position="top-right"
+              containerStyle={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}
               toastOptions={{
                 className: '!rounded-xl !text-sm !font-medium dark:!bg-ink-700 dark:!text-slate-100',
                 success: { iconTheme: { primary: '#2563eb', secondary: '#fff' } },

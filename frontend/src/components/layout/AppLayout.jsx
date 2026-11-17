@@ -47,7 +47,7 @@ function Sidebar({ open, onClose }) {
       <div className={cn('fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-sm transition lg:hidden', open ? 'opacity-100' : 'pointer-events-none opacity-0')} onClick={onClose} />
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-gradient-to-b from-ink-800 via-ink-800 to-brand-950 transition-transform duration-300 lg:translate-x-0',
+          'safe-top fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-gradient-to-b from-ink-800 via-ink-800 to-brand-950 transition-transform duration-300 lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -202,7 +202,7 @@ export default function AppLayout() {
     <div className="min-h-screen">
       <Sidebar open={open} onClose={() => setOpen(false)} />
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-xl dark:border-white/5 dark:bg-ink-900/80 sm:px-6">
+        <header className="safe-top sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-xl dark:border-white/5 dark:bg-ink-900/80 sm:px-6">
           <button className="btn-ghost p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
