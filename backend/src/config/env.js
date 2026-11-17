@@ -31,6 +31,8 @@ const env = {
     pass: process.env.SMTP_PASS,
     from: process.env.EMAIL_FROM || 'ClubSpace <no-reply@clubspace.app>',
   },
+  // Brevo email API (HTTPS) – works on hosts that block SMTP ports, e.g. Render's free plan
+  brevoApiKey: process.env.BREVO_API_KEY,
   whatsapp: {
     token: process.env.WHATSAPP_TOKEN,
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,

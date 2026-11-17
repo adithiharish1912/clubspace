@@ -1,16 +1,50 @@
 const nodemailer = require('nodemailer');
 const env = require('../config/env');
 
-const isEmailConfigured = Boolean(env.smtp.host && env.smtp.user && env.smtp.pass);
+const useBrevo = Boolean(env.brevoApiKey);
+const smtpReady = Boolean(env.smtp.host && env.smtp.user && env.smtp.pass);
+const isEmailConfigured = useBrevo || smtpReady;
 
-const transporter = isEmailConfigured
-  ? nodemailer.createTransport({
-      host: env.smtp.host,
-      port: env.smtp.port,
-      secure: env.smtp.secure,
-      auth: { user: env.smtp.user, pass: env.smtp.pass },
-    })
-  : null;
+const transporter =
+  !useBrevo && smtpReady
+    ? nodemailer.createTransport({
+        host: env.smtp.host,
+        port: env.smtp.port,
+        secure: env.smtp.secure,
+        auth: { user: env.smtp.user, pass: env.smtp.pass },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 20000,
+      })
+    : null;
+
+/** "ClubSpace <club@gmail.com>" -> { name: 'ClubSpace', email: 'club@gmail.com' } */
+function parseFrom(from) {
+  const m = String(from || '').match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if (m) return { name: m[1].trim() || 'ClubSpace', email: m[2].trim() };
+  return { name: 'ClubSpace', email: String(from || '').trim() || env.smtp.user };
+}
+
+/** Sends through Brevo's HTTPS API (port 443, never blocked). */
+async function sendViaBrevo({ to, subject, html, text, attachments }) {
+  const body = {
+    sender: parseFrom(env.smtp.from),
+    to: [{ email: to }],
+    subject,
+    htmlContent: html || `<p>${text || ''}</p>`,
+    ...(text ? { textContent: text } : {}),
+    ...(attachments?.length
+      ? { attachment: attachments.map((a) => ({ name: a.filename, content: Buffer.from(a.content).toString('base64') })) }
+      : {}),
+  };
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': env.brevoApiKey, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
 
 function layout(title, bodyHtml, clubName = 'ClubSpace') {
   return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Segoe UI,Arial,sans-serif;color:#0f172a">
@@ -36,7 +70,8 @@ async function sendEmail({ to, subject, html, text, attachments }) {
     return 'logged';
   }
   try {
-    await transporter.sendMail({ from: env.smtp.from, to, subject, html, text, attachments });
+    if (useBrevo) await sendViaBrevo({ to, subject, html, text, attachments });
+    else await transporter.sendMail({ from: env.smtp.from, to, subject, html, text, attachments });
     return 'sent';
   } catch (err) {
     console.error('[email] send failed:', err.message);
