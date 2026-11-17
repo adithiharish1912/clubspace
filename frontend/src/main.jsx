@@ -8,6 +8,20 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PaymentProvider } from './context/PaymentContext';
 import './index.css';
 
+// Register the service worker so ClubSpace can be installed as an app on phones and desktops
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// Keep the browser's install prompt so the "Install app" button can show it later
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.__installPrompt = e;
+  window.dispatchEvent(new Event('cs-installable'));
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

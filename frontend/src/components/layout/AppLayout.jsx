@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api/client';
 import { Avatar, Badge, cn } from '../ui';
+import InstallApp from '../InstallApp';
 import { label, timeAgo } from '../../utils/format';
 
 const NAV = [
@@ -74,6 +75,9 @@ function Sidebar({ open, onClose }) {
             </NavLink>
           ))}
         </nav>
+        <div className="px-3">
+          <InstallApp />
+        </div>
         <div className="m-3 rounded-2xl bg-white/5 p-4 text-xs text-slate-400">
           <p className="font-semibold text-slate-200">ClubSpace v1.0</p>
           <p className="mt-0.5">Club membership, simplified.</p>

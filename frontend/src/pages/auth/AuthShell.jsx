@@ -1,5 +1,6 @@
 import { CalendarCheck2, CreditCard, QrCode, ShieldCheck } from 'lucide-react';
 import useFetch from '../../hooks/useFetch';
+import InstallApp from '../../components/InstallApp';
 
 const FEATURES = [
   { icon: CreditCard, text: 'Secure online payments with instant receipts' },
@@ -51,6 +52,7 @@ export default function AuthShell({ title, subtitle, children }) {
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{title}</h1>
           {subtitle && <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
           <div className="mt-8">{children}</div>
+          <InstallApp variant="button" className="mt-6" />
         </div>
       </div>
     </div>
